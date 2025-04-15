@@ -1,0 +1,30 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        google()
+        mavenCentral()
+    }
+}
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        maven { url "https://maven.aliyun.com/repository/public" }
+        maven { url "https://maven.aliyun.com/repository/google" }
+        maven { url "https://maven.aliyun.com/repository/gradle-plugin" }
+
+        maven { url 'https://oss.jfrog.org/artifactory/oss-snapshot-local/' }                       // PermissionsDispatcher 权限注解
+        maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }                    // Rajawali可能需要的仓库
+        maven { url "https://oss.sonatype.org/content/repositories/releases/" }
+        maven { url "https://repo.spring.io/plugins-release/" }
+
+        maven { url 'https://dl.bintray.com/tzutalin/maven' }
+
+        google()
+        mavenCentral()
+        maven { url 'https://jitpack.io' } // ✅ 添加这行
+    }
+}
+rootProject.name = "MyARApplication"
+include ':app'
+include ':opencv-sdk'
+include ':dlib'

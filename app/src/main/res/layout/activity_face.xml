@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:surfaceview="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+        <!-- 摄像头预览层 -->
+        <com.cj.mobile.myarapplication.ui.AutoFitTextureView
+            android:id="@+id/camera_preview"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true" />
+
+        <!-- 人脸关键点 -->
+        <ImageView
+            android:id="@+id/iv_facial_key_points"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignStart="@+id/camera_preview"
+            android:layout_alignTop="@+id/camera_preview"
+            android:layout_alignEnd="@+id/camera_preview"
+            android:layout_alignBottom="@+id/camera_preview"
+            android:layout_alignParentBottom="true" />
+    </RelativeLayout>
+
+    <!-- 3D 渲染层（关键配置） -->
+    <org.rajawali3d.view.SurfaceView
+        android:id="@+id/render_surface"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        surfaceview:frameRate="60.0"
+        surfaceview:renderMode="RENDER_WHEN_DIRTY" />
+
+    <LinearLayout
+        android:id="@+id/layout_bottom_btn"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:layout_gravity="bottom"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btn_ornament_sheet"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@android:color/transparent"
+            android:textColor="@android:color/white"
+            android:text="装饰"/>
+
+        <Button
+            android:id="@+id/btn_filter_sheet"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@android:color/transparent"
+            android:textColor="@android:color/white"
+            android:text="滤镜"/>
+    </LinearLayout>
+</FrameLayout>

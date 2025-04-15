@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<lint>
+    <!-- 忽略第三方库问题 -->
+    <issue id="ObsoleteLintCustomCheck" severity="ignore"/>
+    <issue id="UnusedResources" severity="ignore"/>
+    <issue id="MissingTranslation" severity="ignore"/>
+</lint>
