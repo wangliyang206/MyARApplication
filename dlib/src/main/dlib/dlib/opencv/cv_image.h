@@ -26,16 +26,16 @@ namespace dlib
         cv_image (const cv::Mat img) 
         {
             DLIB_CASSERT(img.depth() == cv::DataType<typename pixel_traits<pixel_type>::basic_pixel_type>::depth &&
-                         img.channels() == pixel_traits<pixel_type>::num, 
+                         img.channels() == pixel_traits<pixel_type>::num,
                          "The pixel type you gave doesn't match pixel used by the open cv Mat object."
-                         << "\n\t img.depth():    " << img.depth() 
-                         << "\n\t img.cv::DataType<typename pixel_traits<pixel_type>::basic_pixel_type>::depth: " 
-                            << cv::DataType<typename pixel_traits<pixel_type>::basic_pixel_type>::depth 
-                         << "\n\t img.channels(): " << img.channels() 
-                         << "\n\t img.pixel_traits<pixel_type>::num: " << pixel_traits<pixel_type>::num 
+                         << "\n\t img.depth():    " << img.depth()
+                         << "\n\t img.cv::DataType<typename pixel_traits<pixel_type>::basic_pixel_type>::depth: "
+                            << cv::DataType<typename pixel_traits<pixel_type>::basic_pixel_type>::depth
+                         << "\n\t img.channels(): " << img.channels()
+                         << "\n\t img.pixel_traits<pixel_type>::num: " << pixel_traits<pixel_type>::num
                          );
-            IplImage temp = img;
-            init(&temp);
+            // 直接使用 cv::Mat 处理
+            init(img);
         }
 
         cv_image (const IplImage img) 
@@ -114,17 +114,16 @@ namespace dlib
 
     private:
 
-        void init (const IplImage* img) 
+        void init (const cv::Mat& img)
         {
-            DLIB_CASSERT( img->dataOrder == 0, "Only interleaved color channels are supported with cv_image"); 
-            DLIB_CASSERT((img->depth&0xFF)/8*img->nChannels == sizeof(pixel_type), 
+            DLIB_CASSERT( img.isContinuous(), "Only continuous images are supported with cv_image");
+            DLIB_CASSERT((img.elemSize() == sizeof(pixel_type)),
                          "The pixel type you gave doesn't match the size of pixel used by the open cv image struct");
 
-            _data = img->imageData;
-            _widthStep = img->widthStep;
-            _nr = img->height;
-            _nc = img->width;
-
+            _data = img.data;
+            _widthStep = img.step;
+            _nr = img.rows;
+            _nc = img.cols;
         }
 
         char* _data;
