@@ -26,5 +26,4 @@ dependencyResolutionManagement {
 }
 rootProject.name = "MyARApplication"
 include ':app'
-include ':opencv-sdk'
 include ':dlib'

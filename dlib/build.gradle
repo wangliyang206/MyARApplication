@@ -8,6 +8,11 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "${rootProject.ext.releaseVersionName}"
+
+        ndk {
+            // 设置支持的 SO 库架构
+            abiFilters 'armeabi-v7a'
+        }
     }
 
     buildTypes {
@@ -17,22 +22,41 @@ android {
         }
     }
 
-    android {
-        lintOptions {
-            abortOnError false
-        }
+    lintOptions {
+        abortOnError false
     }
 
-    // Use prebilt *.so. Don't run ndk-build
+    // 禁用默认的 CMake 构建
     sourceSets {
         main {
-            //jniLibs.srcDirs = ["src/main/jniLibs"]
-            jniLibs.srcDirs = ['src/main/libs','src/main/jniLibs']
-            jni.srcDirs = []
+            jni.srcDirs = [] // 禁用默认的 JNI 源目录
+            jniLibs.srcDirs = ['src/main/libs', 'src/main/jniLibs']
         }
     }
 
-    sourceSets.main.jniLibs.srcDirs = ['src/main/libs','src/main/jniLibs']
+    // 配置 NDK 构建任务
+    task ndkBuild(type: Exec, description: 'Compile JNI source with NDK') {
+        Properties properties = new Properties()
+        properties.load(project.rootProject.file('local.properties').newDataInputStream())
+        def ndkDir = properties.getProperty('ndk.dir')
+
+        if (ndkDir == null) {
+            throw new GradleException("NDK 路径未配置，请检查 local.properties 或环境变量 ANDROID_NDK_HOME")
+        }
+
+        // 使用 System 属性判断操作系统
+        def osName = System.getProperty("os.name").toLowerCase()
+        if (osName.contains("windows")) {
+            commandLine "$ndkDir/ndk-build.cmd", '-C', file('src/main/jni').absolutePath
+        } else {
+            commandLine "$ndkDir/ndk-build", '-C', file('src/main/jni').absolutePath
+        }
+    }
+
+    // 确保 Java 编译任务依赖于 NDK 构建任务
+    tasks.withType(JavaCompile) {
+        compileTask -> compileTask.dependsOn ndkBuild
+    }
 }
 
 dependencies {

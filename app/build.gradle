@@ -139,8 +139,6 @@ dependencies {
 //    implementation "androidx.camera:camera-lifecycle:1.2.3"
 //    implementation "androidx.camera:camera-view:1.2.3"
 
-    // OpenCV
-//    implementation project(':opencv-sdk')
     // 轻量3D渲染
     implementation 'org.rajawali3d:rajawali:1.2.1970'
     // dlib
