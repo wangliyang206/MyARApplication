@@ -3,6 +3,7 @@
 #ifndef DLIB_CvIMAGE_H_
 #define DLIB_CvIMAGE_H_
 
+#include <opencv2/core/core_c.h>
 #include <opencv2/core/core.hpp>
 #include <opencv2/core/types_c.h>
 #include "cv_image_abstract.h"
@@ -34,7 +35,8 @@ namespace dlib
                          << "\n\t img.channels(): " << img.channels() 
                          << "\n\t img.pixel_traits<pixel_type>::num: " << pixel_traits<pixel_type>::num 
                          );
-            IplImage temp = img;
+            cv::Mat header = img;
+            IplImage temp = cvIplImage(header);
             init(&temp);
         }
 
@@ -107,7 +109,8 @@ namespace dlib
 
         cv_image& operator=( const cv::Mat img)
         {
-            IplImage temp = img;
+            cv::Mat header = img;
+            IplImage temp = cvIplImage(header);
             init(&temp);
             return *this;
         }
