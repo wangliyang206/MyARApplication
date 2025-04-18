@@ -7,7 +7,7 @@ OPENCV_LIB_TYPE :=STATIC
 ifeq ("$(wildcard $(OPENCV_MK_PATH))","")
 #include D:\Simon\Works\Android\Git\ARDemo\dlib\src\main\third_party\opencv\jni\OpenCV.mk
 #include G:\OpenCV\opencv-3.4.16-android-sdk\OpenCV-android-sdk\sdk\native\jni\OpenCV.mk
-#include G:\OpenCV\OpenCV-2.4.10-android-sdk\sdk\native\jni\OpenCV.mk
+include G:\OpenCV\opencv-3.4.10-android-sdk\OpenCV-android-sdk\sdk\native\jni\OpenCV.mk
 else
 include $(OPENCV_MK_PATH)
 endif
