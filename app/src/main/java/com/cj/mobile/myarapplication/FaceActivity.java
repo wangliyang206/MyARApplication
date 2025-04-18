@@ -2,7 +2,6 @@ package com.cj.mobile.myarapplication;
 
 import android.app.ProgressDialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -18,7 +17,6 @@ import android.os.Looper;
 import android.util.Log;
 import android.util.Size;
 import android.view.LayoutInflater;
-import android.view.TextureView;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
@@ -78,8 +76,6 @@ public class FaceActivity extends AppCompatActivity implements View.OnClickListe
     private List<Integer> mFilters = new ArrayList<>();                                             // 滤镜 - 数据
     private FilterAdapter mFilterAdapter;                                                           // 滤镜 - 适配器
 
-    private int mOrnamentId = -1;
-    private boolean isBuildMask = false;
     // 相机渲染
     private MyCameraRenderer mCameraRenderer;
     private OnGetImageListener mOnGetPreviewListener = null;
@@ -193,8 +189,8 @@ public class FaceActivity extends AppCompatActivity implements View.OnClickListe
         mOrnamentAdapter = new OrnamentAdapter(getApplicationContext(), mOrnaments);
         mOrnamentAdapter.setOnItemClickListener(position -> {
             mOrnamentSheet.dismiss();
-            mOrnamentId = position;
-            isBuildMask = true;
+            mRenderer.setmOrnamentId(position);
+            mRenderer.setBuildMask(true);
         });
 
         View sheetView = LayoutInflater.from(getApplicationContext()).inflate(R.layout.layout_bottom_sheet, null);
@@ -207,7 +203,7 @@ public class FaceActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private void initFilterSheet() {
-        for (int i=0; i<21; i++) {
+        for (int i = 0; i < 21; i++) {
             mFilters.add(i);
         }
 
@@ -246,7 +242,7 @@ public class FaceActivity extends AppCompatActivity implements View.OnClickListe
         Thread mThread = new Thread() {
             @Override
             public void run() {
-                mOnGetPreviewListener.initialize(getApplicationContext(),  inferenceHandler);
+                mOnGetPreviewListener.initialize(getApplicationContext(), inferenceHandler);
                 dismissDialog();
             }
         };
@@ -279,7 +275,7 @@ public class FaceActivity extends AppCompatActivity implements View.OnClickListe
             @Override
             public void onTransChange(float x, float y, float z) {
                 // mRenderer.mContainer.setPosition(x/20, -y/20, z/20);
-                mRenderer.getCurrentCamera().setPosition(-x/200, y/200, z/100);
+                mRenderer.getCurrentCamera().setPosition(-x / 200, y / 200, z / 100);
             }
 
             @Override
@@ -291,7 +287,7 @@ public class FaceActivity extends AppCompatActivity implements View.OnClickListe
             Log.e("rotateList", "onGetSuitableFace");
             new Handler().post(() -> {
                 OBJUtils.buildFaceModel(getApplicationContext(), bitmap, landmarks);
-                isBuildMask = true;
+                mRenderer.setBuildMask(true);
             });
         });
 
@@ -340,7 +336,7 @@ public class FaceActivity extends AppCompatActivity implements View.OnClickListe
             inferenceThread.join();
             inferenceThread = null;
         } catch (final InterruptedException e) {
-            Log.e(TAG, "error" ,e );
+            Log.e(TAG, "error", e);
         }
     }
 
@@ -372,17 +368,17 @@ public class FaceActivity extends AppCompatActivity implements View.OnClickListe
             float rotateY = y;
             float rotateZ = z;
 
-            if (Math.abs(lastX-x) > 90) {
+            if (Math.abs(lastX - x) > 90) {
                 Log.e("rotateException", "X 跳变");
                 isJumpX = true;
                 rotateX = lastX;
             }
-            if (Math.abs(lastY-y) > 90) {
+            if (Math.abs(lastY - y) > 90) {
                 Log.e("rotateException", "Y 跳变");
                 isJumpY = true;
                 rotateY = lastY;
             }
-            if (Math.abs(lastZ-z) > 90) {
+            if (Math.abs(lastZ - z) > 90) {
                 Log.e("rotateException", "Z 跳变");
                 isJumpZ = true;
                 rotateZ = lastZ;

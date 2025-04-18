@@ -1,22 +1,26 @@
 package com.cj.mobile.myarapplication.util;
 
 import android.content.Context;
-import android.graphics.PointF;
-import android.opengl.GLES20;
+import android.graphics.Bitmap;
 import android.util.Log;
 import android.view.MotionEvent;
 
-import com.cj.mobile.myarapplication.R;
+import com.cj.mobile.myarapplication.model.Ornament;
+import com.cj.mobile.myarapplication.presenter.FacePresenter;
 
 import org.rajawali3d.Object3D;
+import org.rajawali3d.animation.Animation;
+import org.rajawali3d.animation.Animation3D;
+import org.rajawali3d.animation.AnimationGroup;
 import org.rajawali3d.lights.DirectionalLight;
-import org.rajawali3d.loader.LoaderAWD;
 import org.rajawali3d.loader.LoaderOBJ;
-import org.rajawali3d.materials.Material;
-import org.rajawali3d.materials.methods.DiffuseMethod;
+import org.rajawali3d.materials.textures.ATexture;
+import org.rajawali3d.materials.textures.Texture;
 import org.rajawali3d.math.vector.Vector3;
 import org.rajawali3d.renderer.Renderer;
 
+import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -28,13 +32,20 @@ import java.util.List;
  * @CreateDate: 2025/4/11 9:40
  */
 public class AccelerometerRenderer extends Renderer {
+    private static final String TAG = AccelerometerRenderer.class.getSimpleName();
+
     private DirectionalLight mLight;
     private Object3D mContainer;
     private Object3D mMonkey;
-    private Object3D mGlasses;
-    private Object3D mHairBand;
-    private Object3D mMoustache;
+    private Object3D mOrnament;
     private Vector3 mAccValues;
+
+    // 装饰模型，数据集合
+    private List<Ornament> mOrnaments = new ArrayList<>();
+    // 当前装饰模型id
+    private int mOrnamentId = -1;
+    // 是否绘制模型
+    private boolean isBuildMask = false;
 
     public AccelerometerRenderer(Context context) {
         super(context);
@@ -49,108 +60,118 @@ public class AccelerometerRenderer extends Renderer {
             mLight.setPower(1);
             getCurrentScene().addLight(mLight);
 
-            final LoaderAWD parser = new LoaderAWD(mContext.getResources(), mTextureManager, R.raw.head_object_new);
-            parser.parse();
-            mMonkey = parser.getParsedObject();
-            mMonkey.setScale(0.005f);
-            //mMonkey.setZ(-2f);
-//                getCurrentScene().addChild(mMonkey);
-
-//            int[] resourceIds = new int[]{R.drawable.posx, R.drawable.negx,
-//                    R.drawable.posy, R.drawable.negy, R.drawable.posz,
-//                    R.drawable.negz};
-
-            Material material = new Material();
-            material.enableLighting(true);
-            material.setDiffuseMethod(new DiffuseMethod.Lambert());
-
-//            CubeMapTexture envMap = new CubeMapTexture("environmentMap",
-//                    resourceIds);
-//            envMap.isEnvironmentTexture(true);
-//            material.addTexture(envMap);
-            material.setColorInfluence(0);
-            mMonkey.setMaterial(material);
-
-            LoaderOBJ objParser1 = new LoaderOBJ(mContext.getResources(), mTextureManager, R.raw.glasses_obj);
-            objParser1.parse();
-            mGlasses = objParser1.getParsedObject();
-            mGlasses.setScale(0.005f);
-            //mGlasses.setZ(-0.2f);
-            mGlasses.setZ(0.3f);
-            mGlasses.rotate(Vector3.Axis.X, -90.0f);
-
-            LoaderOBJ objParser2 = new LoaderOBJ(mContext.getResources(), mTextureManager, R.raw.hair_band_obj);
-            objParser2.parse();
-            mHairBand = objParser2.getParsedObject();
-            mHairBand.setScale(0.006f);
-            mHairBand.setY(0.27f);
-            mHairBand.setZ(-0.25f);
-            mHairBand.rotate(Vector3.Axis.X, -90.0f);
-
-            LoaderOBJ objParser3 = new LoaderOBJ(mContext.getResources(), mTextureManager, R.raw.moustache_obj);
-            objParser3.parse();
-            mMoustache = objParser3.getParsedObject();
-            mMoustache.setScale(0.007f);
-            mMoustache.setY(-0.25f);
-            mMoustache.setZ(0.3f);
-            mMoustache.rotate(Vector3.Axis.X, -90.0f);
-
             mContainer = new Object3D();
-            mContainer.addChild(mMonkey);
-            mContainer.addChild(mGlasses);
-            mContainer.addChild(mHairBand);
-            mContainer.addChild(mMoustache);
+            showMaskModel();
             getCurrentScene().addChild(mContainer);
-            //getCurrentCamera().setZ(20);
 
         } catch (Exception e) {
             e.printStackTrace();
         }
 
-        // -- set the background color to be transparent
-        // you need to have called setGLBackgroundTransparent(true); in the activity
-        // for this to work.
         getCurrentScene().setBackgroundColor(0);
     }
 
     @Override
     protected void onRender(long ellapsedRealtime, double deltaTime) {
         super.onRender(ellapsedRealtime, deltaTime);
-        //mMonkey.setRotation(mAccValues.x, mAccValues.y, mAccValues.z);
+        if (isBuildMask) {
+            showMaskModel();
+            isBuildMask = false;
+        }
         mContainer.setRotation(mAccValues.x, mAccValues.y, mAccValues.z);
-    }
-
-    public void updateFacePosition(List<PointF> facePoints) {
-        if (mContainer == null) {
-            Log.w("FaceEffect", "模型尚未初始化");
-            return;
-        }
-
-        try {
-            android.graphics.PointF point = facePoints.get(0);
-
-            // 坐标转换（带异常捕获）
-            float x = (point.x * 2 - 1) * 1.5f;
-            float y = -(point.y * 2 - 1) * 1.5f;
-
-//            mContainer.setPosition(x, y, -1);
-            setAccelerometerValues(x, y, -1);
-
-        } catch (IndexOutOfBoundsException e) {
-            Log.e("FaceEffect", "无效的人脸坐标数据");
-        }
     }
 
     public void setAccelerometerValues(float x, float y, float z) {
         mAccValues.setAll(x, y, z);
     }
 
-    /**
-     * 切换线框
-     */
-    void toggleWireframe() {
-        mMonkey.setDrawingMode(mMonkey.getDrawingMode() == GLES20.GL_TRIANGLES ? GLES20.GL_LINES
-                : GLES20.GL_TRIANGLES);
+    void showMaskModel() {
+        try {
+            boolean isFaceVisible = true;
+            boolean isOrnamentVisible = true;
+            if (mMonkey != null) {
+                isFaceVisible = mMonkey.isVisible();
+                mMonkey.setScale(1.0f);
+                mMonkey.setPosition(0, 0, 0);
+                mContainer.removeChild(mMonkey);
+            }
+            if (mOrnament != null) {
+                isOrnamentVisible = mOrnament.isVisible();
+                mOrnament.setScale(1.0f);
+                mOrnament.setPosition(0, 0, 0);
+                mContainer.removeChild(mOrnament);
+            }
+
+            String modelDir = OBJUtils.getModelDir();
+            String imagePath = modelDir + OBJUtils.IMG_FACE;
+            String objPath = OBJUtils.DIR_NAME + File.separator + FileUtils.getMD5(imagePath) + "_obj";
+            LoaderOBJ parser = new LoaderOBJ(this, objPath);
+            parser.parse();
+            mMonkey = parser.getParsedObject();
+            ATexture texture = mMonkey.getMaterial().getTextureList().get(0);
+            mMonkey.getMaterial().removeTexture(texture);
+            mMonkey.setScale(0.06f);
+            mMonkey.setY(-0.54f);
+            mMonkey.setZ(0.15f);
+            mMonkey.setVisible(isFaceVisible);
+
+            String texturePath = FileUtils.getMD5(imagePath) + ".jpg";
+            Bitmap bitmap = BitmapUtils.decodeSampledBitmapFromFilePath(modelDir + texturePath, 1024, 1024);
+            mMonkey.getMaterial().addTexture(new Texture("canvas", bitmap));
+            mMonkey.getMaterial().enableLighting(false);
+
+            mContainer.addChild(mMonkey);
+
+            if (mOrnamentId >= 0 && mOrnaments.size() > mOrnamentId) {
+                Ornament ornament = mOrnaments.get(mOrnamentId);
+                LoaderOBJ objParser1 = new LoaderOBJ(mContext.getResources(), mTextureManager, ornament.getModelResId());
+                objParser1.parse();
+                mOrnament = objParser1.getParsedObject();
+                mOrnament.setScale(ornament.getScale());
+                mOrnament.setPosition(ornament.getOffsetX(), ornament.getOffsetY(), ornament.getOffsetZ());
+                mOrnament.setRotation(ornament.getRotateX(), ornament.getRotateY(), ornament.getRotateZ());
+                int color = ornament.getColor();
+                if (color != FacePresenter.NO_COLOR) {
+                    mOrnament.getMaterial().setColor(color);
+                }
+                mOrnament.setVisible(isOrnamentVisible);
+                mContainer.addChild(mOrnament);
+
+                getCurrentScene().clearAnimations();
+                List<Animation3D> animation3Ds = ornament.getAnimation3Ds();
+                if (animation3Ds != null && animation3Ds.size() > 0) {
+                    final AnimationGroup animGroup = new AnimationGroup();
+                    animGroup.setRepeatMode(Animation.RepeatMode.REVERSE_INFINITE);
+
+                    for (Animation3D animation3D : animation3Ds) {
+                        animation3D.setTransformable3D(mOrnament);
+                        animGroup.addAnimation(animation3D);
+                    }
+
+                    getCurrentScene().registerAnimation(animGroup);
+                    animGroup.play();
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            Log.e(TAG, e.getMessage());
+        }
+    }
+
+    public int getmOrnamentId() {
+        return mOrnamentId;
+    }
+
+    public void setmOrnamentId(int mOrnamentId) {
+        this.mOrnamentId = mOrnamentId;
+    }
+
+    public boolean isBuildMask() {
+        return isBuildMask;
+    }
+
+    public void setBuildMask(boolean buildMask) {
+        isBuildMask = buildMask;
     }
 
     @Override
