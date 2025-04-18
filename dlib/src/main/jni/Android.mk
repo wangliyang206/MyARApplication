@@ -19,8 +19,7 @@ include $(BUILD_STATIC_LIBRARY)
 EXT_INSTALL_PATH = $(LOCAL_PATH)/../third_party
 
 # 配置 OpenCV路径
-#OPENCV_PATH = G:\OpenCV\opencv-3.4.16-android-sdk\OpenCV-android-sdk\sdk\native\jni
-OPENCV_PATH = G:\OpenCV\opencv-3.4.10-android-sdk\OpenCV-android-sdk\sdk\native\jni
+OPENCV_PATH = G:\OpenCV\opencv-3.4.16-android-sdk\OpenCV-android-sdk\sdk\native\jni
 OPENCV_INCLUDE_DIR = $(OPENCV_PATH)/include
 
 MINIGLOG_LIB_TYPE := STATIC
