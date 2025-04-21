@@ -32,6 +32,7 @@ import com.cj.mobile.myarapplication.adapter.FilterAdapter;
 import com.cj.mobile.myarapplication.adapter.OrnamentAdapter;
 import com.cj.mobile.myarapplication.camera.MyCameraRenderer;
 import com.cj.mobile.myarapplication.model.Ornament;
+import com.cj.mobile.myarapplication.presenter.FacePresenter;
 import com.cj.mobile.myarapplication.ui.AutoFitTextureView;
 import com.cj.mobile.myarapplication.ui.CameraUtils;
 import com.cj.mobile.myarapplication.ui.CustomBottomSheet;
@@ -66,6 +67,7 @@ public class FaceActivity extends AppCompatActivity implements View.OnClickListe
     // 滤镜
     private RecyclerView mRvFilter;
     /*-------------------------------------对象-------------------------------------*/
+    private FacePresenter mPresenter;
     private AccelerometerRenderer mRenderer;                                                        // 渲染器
 
     private CustomBottomSheet mOrnamentSheet;                                                       // 装饰 - 底部弹窗
@@ -141,7 +143,9 @@ public class FaceActivity extends AppCompatActivity implements View.OnClickListe
         initOrnamentSheet();
         initFilterSheet();
         initCamera();
+        initOrnamentData();
     }
+
 
     /**
      * 初始化视图
@@ -149,8 +153,8 @@ public class FaceActivity extends AppCompatActivity implements View.OnClickListe
     private void initView() {
         textureView = findViewById(R.id.camera_preview);
         renderSurface = findViewById(R.id.render_surface);
-        ivDraw = (ImageView) findViewById(R.id.iv_facial_key_points);
-        mLayoutBottomBtn = (LinearLayout) findViewById(R.id.layout_bottom_btn);
+        ivDraw = findViewById(R.id.iv_facial_key_points);
+        mLayoutBottomBtn = findViewById(R.id.layout_bottom_btn);
 
         // 关键设置1：设置SurfaceView透明模式
         renderSurface.setTransparent(true);
@@ -159,8 +163,8 @@ public class FaceActivity extends AppCompatActivity implements View.OnClickListe
         // 关键设置3：禁用不透明缓冲
         renderSurface.getHolder().setFormat(PixelFormat.TRANSLUCENT);
 
-        Button btnOrnament = (Button) findViewById(R.id.btn_ornament_sheet);
-        Button btnFilterSheet = (Button) findViewById(R.id.btn_filter_sheet);
+        Button btnOrnament = findViewById(R.id.btn_ornament_sheet);
+        Button btnFilterSheet = findViewById(R.id.btn_filter_sheet);
 
         btnOrnament.setOnClickListener(this);
         btnFilterSheet.setOnClickListener(this);
@@ -185,6 +189,9 @@ public class FaceActivity extends AppCompatActivity implements View.OnClickListe
         renderSurface.setSurfaceRenderer(mRenderer);
     }
 
+    /**
+     * 初始化装饰弹窗
+     */
     private void initOrnamentSheet() {
         mOrnamentAdapter = new OrnamentAdapter(getApplicationContext(), mOrnaments);
         mOrnamentAdapter.setOnItemClickListener(position -> {
@@ -202,6 +209,9 @@ public class FaceActivity extends AppCompatActivity implements View.OnClickListe
         mOrnamentSheet.getWindow().findViewById(com.google.android.material.R.id.design_bottom_sheet).setBackgroundResource(android.R.color.transparent);
     }
 
+    /**
+     * 初始化滤镜弹窗
+     */
     private void initFilterSheet() {
         for (int i = 0; i < 21; i++) {
             mFilters.add(i);
@@ -231,6 +241,12 @@ public class FaceActivity extends AppCompatActivity implements View.OnClickListe
         int orientation = getResources().getConfiguration().orientation;
         int rotation = getWindowManager().getDefaultDisplay().getRotation();
         CameraUtils.init(textureView, cameraManager, orientation, rotation);
+    }
+
+    private void initOrnamentData() {
+        mPresenter = new FacePresenter();
+        mOrnaments.addAll(mPresenter.getPresetOrnament());
+        mOrnamentAdapter.notifyDataSetChanged();
     }
 
     /**
