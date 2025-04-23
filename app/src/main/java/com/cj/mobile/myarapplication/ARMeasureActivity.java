@@ -133,7 +133,10 @@ public class ARMeasureActivity extends AppCompatActivity implements SensorEventL
     }
 
     private void handleTap(float rawX, float rawY) {
-        if (!isDeviceLevel()) return;
+        if (!isDeviceLevel()) {
+            statusText.setText("请保持手机水平！");
+            return;
+        }
 
         // 修复比例计算（基于实际预览尺寸）
         int previewWidth = previewView.getWidth();
@@ -156,16 +159,16 @@ public class ARMeasureActivity extends AppCompatActivity implements SensorEventL
         if (startPoint == null) {
             startPoint = new Point(sensorX, sensorY);
             // 显示起点标记
+            setMarkerPosition(startMarker, rawX, rawY);
             startMarker.setVisibility(View.VISIBLE);
             startMarker.animate().alpha(1f).setDuration(300).start();
-            setMarkerPosition(startMarker, sensorX, sensorY);
             statusText.setText("选择终点...");
         } else {
             endPoint = new Point(sensorX, sensorY);
             // 显示终点标记
+            setMarkerPosition(endMarker, rawX, rawY);
             endMarker.setVisibility(View.VISIBLE);
             endMarker.animate().alpha(1f).setDuration(300).start();
-            setMarkerPosition(endMarker, sensorX, sensorY);
             calculateDistance();
         }
     }
@@ -173,11 +176,38 @@ public class ARMeasureActivity extends AppCompatActivity implements SensorEventL
     /**
      * 设置标记位置
      */
-    private void setMarkerPosition(ImageView marker, float x, float y) {
-        // 转换为布局坐标
+    private void setMarkerPosition(ImageView marker, float screenX, float screenY) {
+        // 获取预览视图的实际显示区域
+        int viewWidth = previewView.getWidth();
+        int viewHeight = previewView.getHeight();
+
+        // 计算居中显示的预览区域（考虑4:3比例）
+        float scale = Math.min(
+                (float) viewWidth / ASPECT_RATIO,
+                (float) viewHeight / 1
+        );
+        float displayWidth = scale * ASPECT_RATIO;
+        float displayHeight = scale * 1;
+
+        // 计算有效点击区域
+        float left = (viewWidth - displayWidth) / 2;
+        float top = (viewHeight - displayHeight) / 2;
+        float right = left + displayWidth;
+        float bottom = top + displayHeight;
+
+        // 坐标边界检查
+        float adjustedX = Math.max(left, Math.min(screenX, right));
+        float adjustedY = Math.max(top, Math.min(screenY, bottom));
+
+        // 转换为相对布局坐标
         RelativeLayout.LayoutParams params = (RelativeLayout.LayoutParams) marker.getLayoutParams();
-        params.leftMargin = (int) (x - marker.getWidth() / 2);
-        params.topMargin = (int) (y - marker.getHeight() / 2);
+        params.leftMargin = (int) (adjustedX - marker.getWidth() / 2);
+        params.topMargin = (int) (adjustedY - marker.getHeight() / 2);
+
+        // 限制在父容器范围内
+        params.leftMargin = Math.max(0, Math.min(params.leftMargin, viewWidth - marker.getWidth()));
+        params.topMargin = Math.max(0, Math.min(params.topMargin, viewHeight - marker.getHeight()));
+
         marker.setLayoutParams(params);
     }
 
@@ -195,12 +225,28 @@ public class ARMeasureActivity extends AppCompatActivity implements SensorEventL
     private void calculateDistance() {
         if (startPoint == null || endPoint == null) return;
 
-        float dy = startPoint.y - endPoint.y;
-        float realHeight = dy * SENSOR_HEIGHT / previewView.getHeight();
-        float distance = (FOCAL_LENGTH * 1000) / realHeight; // 转换为毫米
+        // 实际物理尺寸转换（像素->毫米）
+        float dx_mm = (endPoint.x - startPoint.x) * (SENSOR_WIDTH / previewView.getWidth());
+        float dy_mm = (endPoint.y - startPoint.y) * (SENSOR_HEIGHT / previewView.getHeight());
+
+        // 三维空间距离公式（单位：毫米）
+        float distanceMM = (float) Math.sqrt(
+                Math.pow(dx_mm, 2) +
+                        Math.pow(dy_mm, 2) +
+                        Math.pow(FOCAL_LENGTH, 2)
+        );
+
+        // 增加有效性检查
+        if (Float.isNaN(distanceMM) || Float.isInfinite(distanceMM)) {
+            showMessage("测量失败，请重试", "错误");
+            return;
+        }
+
+        // 转换为厘米
+        float distanceCM = distanceMM * 0.1f;
 
         runOnUiThread(() -> {
-            showMessage(String.format("距离: %.2fcm", distance), "测量完成！");
+            showMessage(String.format("距离: %.2fcm", distanceCM), "测量完成！");
         });
     }
 
@@ -224,7 +270,8 @@ public class ARMeasureActivity extends AppCompatActivity implements SensorEventL
     }
 
     private boolean isDeviceLevel() {
-        return Math.abs(orientation[1]) < 10; // 俯仰角小于10度（水平判断）
+//        return Math.abs(orientation[1]) < 10; // 俯仰角小于10度（水平判断）
+        return Math.abs(orientation[1]) < 5; // 严格水平判断（±5度）
     }
 
     // 传感器回调
