@@ -4,16 +4,12 @@ import android.Manifest;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.Gravity;
-import android.view.View;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import permissions.dispatcher.NeedsPermission;
-import permissions.dispatcher.OnNeverAskAgain;
-import permissions.dispatcher.OnPermissionDenied;
 import permissions.dispatcher.RuntimePermissions;
 
 @RuntimePermissions
@@ -47,17 +43,17 @@ public class MainActivity extends AppCompatActivity {
         Toast.makeText(this, "权限申请成功", Toast.LENGTH_SHORT).show();
         Log.i("MainActivity", "runApp: 权限申请成功");
 
-        // 添加Fragment到容器
-//        getSupportFragmentManager().beginTransaction()
-//                .replace(R.id.fragment_container, new CameraFragment())
-//                .commit();
-
-        findViewById(R.id.btn_switch_camera).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent intent = new Intent(MainActivity.this, FaceActivity.class);
-                startActivity(intent);
-            }
+        findViewById(R.id.btn_ar_camera).setOnClickListener(view -> {
+            toJump(FaceActivity.class);
         });
+
+        findViewById(R.id.btn_ar_measure).setOnClickListener(view -> {
+            toJump(ARMeasureActivity.class);
+        });
+    }
+
+    private void toJump(Class<?> cls) {
+        Intent intent = new Intent(MainActivity.this, cls);
+        startActivity(intent);
     }
 }

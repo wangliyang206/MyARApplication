@@ -4,7 +4,7 @@
     package="com.cj.mobile.myarapplication">
 
     <uses-permission android:name="android.permission.CAMERA" />
-
+    <uses-feature android:name="android.hardware.camera.info" />
     <uses-feature android:name="android.hardware.camera" />
     <uses-feature android:name="android.hardware.camera.autofocus" />
 
@@ -44,6 +44,7 @@
             </intent-filter>
         </activity>
 
+        <activity android:name=".ARMeasureActivity" />
         <activity android:name=".FaceActivity" />
     </application>
 
