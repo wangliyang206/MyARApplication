@@ -7,7 +7,6 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
@@ -171,6 +170,9 @@ public class ARMeasureActivity extends AppCompatActivity implements SensorEventL
         }
     }
 
+    /**
+     * 设置标记位置
+     */
     private void setMarkerPosition(ImageView marker, float x, float y) {
         // 转换为布局坐标
         RelativeLayout.LayoutParams params = (RelativeLayout.LayoutParams) marker.getLayoutParams();
@@ -193,18 +195,19 @@ public class ARMeasureActivity extends AppCompatActivity implements SensorEventL
     private void calculateDistance() {
         if (startPoint == null || endPoint == null) return;
 
-        // 直接使用传感器物理尺寸计算（无需比例转换）
-        float dy = Math.abs(startPoint.y - endPoint.y);
-
-        // 打印关键参数（帮助调试）
-        Log.d("MEASURE", "焦距: " + FOCAL_LENGTH + "mm");
-        Log.d("MEASURE", "成像高度差: " + dy + "mm");
-
-        float distance = (FOCAL_LENGTH * 10) / dy; // 焦距单位转换为cm
+        float dy = startPoint.y - endPoint.y;
+        float realHeight = dy * SENSOR_HEIGHT / previewView.getHeight();
+        float distance = (FOCAL_LENGTH * 1000) / realHeight; // 转换为毫米
 
         runOnUiThread(() -> {
-            distanceText.setText(String.format("距离: %.2fcm", distance));
-            statusText.setText("测量完成！");
+            showMessage(String.format("距离: %.2fcm", distance), "测量完成！");
+        });
+    }
+
+    private void showMessage(String msg, String tips) {
+        runOnUiThread(() -> {
+            distanceText.setText(tips);
+            statusText.setText(msg);
         });
     }
 
