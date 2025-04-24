@@ -1,7 +1,6 @@
 package com.cj.mobile.myarapplication;
+
 import android.Manifest;
-import android.app.Activity;
-import android.content.Context;
 import android.content.pm.PackageManager;
 import android.hardware.Camera;
 import android.hardware.Sensor;
@@ -11,7 +10,6 @@ import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
-import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.widget.Button;
@@ -44,13 +42,13 @@ public class SensorMeasureActivity extends AppCompatActivity implements SensorEv
     private final SurfaceHolder.Callback surfaceCallback = new SurfaceHolder.Callback() {
         @Override
         public void surfaceCreated(SurfaceHolder holder) {
-            Log.d("Camera", "Surface created");
+            Log.d("Camera", "创建曲面");
             new Handler().postDelayed(() -> initCamera(), 300);
         }
 
         @Override
         public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-            Log.d("Camera", "Surface changed: " + width + "x" + height);
+            Log.d("Camera", "表面已更改: " + width + "x" + height);
             if (camera != null) {
                 try {
                     camera.stopPreview();
@@ -60,14 +58,14 @@ public class SensorMeasureActivity extends AppCompatActivity implements SensorEv
                     camera.setPreviewDisplay(holder);
                     camera.startPreview();
                 } catch (Exception e) {
-                    Log.e("Camera", "Surface changed error", e);
+                    Log.e("Camera", "表面变化错误", e);
                 }
             }
         }
 
         @Override
         public void surfaceDestroyed(SurfaceHolder holder) {
-            Log.d("Camera", "Surface destroyed");
+            Log.d("Camera", "表面损坏");
             releaseCamera();
         }
     };
@@ -76,13 +74,13 @@ public class SensorMeasureActivity extends AppCompatActivity implements SensorEv
         String errorMsg;
         switch (error) {
             case Camera.CAMERA_ERROR_SERVER_DIED:
-                errorMsg = "Camera service died";
+                errorMsg = "相机服务终止";
                 break;
             case Camera.CAMERA_ERROR_EVICTED:
-                errorMsg = "Camera resource occupied";
+                errorMsg = "摄像头资源已占用";
                 break;
             default:
-                errorMsg = "Unknown camera error: " + error;
+                errorMsg = "未知摄像头错误: " + error;
         }
         runOnUiThread(() -> {
             Toast.makeText(this, errorMsg, Toast.LENGTH_LONG).show();
@@ -139,7 +137,7 @@ public class SensorMeasureActivity extends AppCompatActivity implements SensorEv
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 initCamera();
             } else {
-                Toast.makeText(this, "Camera permission required", Toast.LENGTH_LONG).show();
+                Toast.makeText(this, "需要相机权限", Toast.LENGTH_LONG).show();
                 finish();
             }
         }
@@ -151,7 +149,7 @@ public class SensorMeasureActivity extends AppCompatActivity implements SensorEv
 
             int cameraId = findBackFacingCamera();
             if (cameraId < 0) {
-                Toast.makeText(this, "No back camera found", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "未找到后置摄像头", Toast.LENGTH_SHORT).show();
                 return;
             }
 
@@ -179,7 +177,7 @@ public class SensorMeasureActivity extends AppCompatActivity implements SensorEv
             camera.startPreview();
         } catch (Exception e) {
             Log.e("Camera", "Init failed: " + e.getMessage());
-            Toast.makeText(this, "Camera init failed", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "摄像头初始化失败", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -233,8 +231,8 @@ public class SensorMeasureActivity extends AppCompatActivity implements SensorEv
         totalDistance = 0;
         lastTimestamp = System.nanoTime();
         runOnUiThread(() -> {
-            measureButton.setText("STOP");
-            distanceText.setText("Moving...");
+            measureButton.setText("停止");
+            distanceText.setText("请缓慢移动...");
         });
 
         // 注册传感器
@@ -247,8 +245,8 @@ public class SensorMeasureActivity extends AppCompatActivity implements SensorEv
     private void stopMeasurement() {
         isMeasuring = false;
         runOnUiThread(() -> {
-            measureButton.setText("START");
-            distanceText.setText(String.format(Locale.US, "Distance: %.2f m", totalDistance));
+            measureButton.setText("开始");
+            distanceText.setText(String.format(Locale.US, "距离: %.2f m", totalDistance));
         });
         sensorManager.unregisterListener(this);
     }
@@ -294,7 +292,8 @@ public class SensorMeasureActivity extends AppCompatActivity implements SensorEv
     }
 
     @Override
-    public void onAccuracyChanged(Sensor sensor, int accuracy) {}
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+    }
 
     private void releaseCamera() {
         if (camera != null) {
