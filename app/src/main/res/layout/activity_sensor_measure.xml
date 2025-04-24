@@ -9,6 +9,12 @@
         android:layout_height="match_parent"
         android:layout_alignParentTop="true"/>
 
+    <!-- 新增：用于绘制准星和测量线的自定义视图 -->
+    <com.cj.mobile.myarapplication.ui.CrosshairView
+        android:id="@+id/crosshairView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

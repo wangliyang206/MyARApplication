@@ -21,11 +21,16 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import com.cj.mobile.myarapplication.ui.CrosshairView;
+
 import java.util.List;
 import java.util.Locale;
 
 public class SensorMeasureActivity extends AppCompatActivity implements SensorEventListener {
     private static final int CAMERA_PERMISSION_CODE = 100;
+
+    // 添加成员变量
+    private CrosshairView crosshairView;
 
     private Camera camera;
     private SurfaceView cameraPreview;
@@ -95,6 +100,7 @@ public class SensorMeasureActivity extends AppCompatActivity implements SensorEv
 
         // 初始化视图
         cameraPreview = findViewById(R.id.cameraPreview);
+        crosshairView = findViewById(R.id.crosshairView);
         distanceText = findViewById(R.id.distanceText);
         measureButton = findViewById(R.id.measureButton);
 
@@ -112,6 +118,9 @@ public class SensorMeasureActivity extends AppCompatActivity implements SensorEv
                 stopMeasurement();
             }
         });
+
+        // 设置平滑度（示例值，范围0~1，默认0.3）
+        crosshairView.setLineSmoothness(0.15f); // 值越小越灵敏，值越大越平滑
 
         // 检查权限
         checkCameraPermission();
@@ -233,6 +242,8 @@ public class SensorMeasureActivity extends AppCompatActivity implements SensorEv
         runOnUiThread(() -> {
             measureButton.setText("停止");
             distanceText.setText("请缓慢移动...");
+            // 开始测量
+            crosshairView.startMeasurement();
         });
 
         // 注册传感器
@@ -247,6 +258,8 @@ public class SensorMeasureActivity extends AppCompatActivity implements SensorEv
         runOnUiThread(() -> {
             measureButton.setText("开始");
             distanceText.setText(String.format(Locale.US, "距离: %.2f m", totalDistance));
+            // 隐藏准星和测量线
+            crosshairView.stopMeasurement();
         });
         sensorManager.unregisterListener(this);
     }
@@ -285,6 +298,17 @@ public class SensorMeasureActivity extends AppCompatActivity implements SensorEv
                     acceleration[1] - (float) Math.sin(rotation[0]) * SensorManager.GRAVITY_EARTH,
                     acceleration[2] - SensorManager.GRAVITY_EARTH
             };
+
+            // 计算屏幕偏移量（新增转换系数）
+            // 根据屏幕密度调整
+            final float scaleFactor = getResources().getDisplayMetrics().density * 100;
+            // 修改为（适配屏幕旋转）
+            final float offsetX = -linearAccel[0] * scaleFactor * deltaTime; // 使用X轴加速度
+            final float offsetY = -linearAccel[1] * scaleFactor * deltaTime; // 使用Y轴加速度
+
+            runOnUiThread(() -> {
+                crosshairView.updateMeasurementLine(offsetX, offsetY);
+            });
 
             // 通过加速度二次积分计算位移（s = 0.5 * a * t²）
             double deltaDistance = 0.5 * Math.sqrt(
