@@ -253,21 +253,25 @@ public class SensorMeasureActivity extends AppCompatActivity implements SensorEv
 
     @Override
     public void onSensorChanged(SensorEvent event) {
+        // 未在测量状态时直接返回
         if (!isMeasuring) return;
 
         long currentTime = System.nanoTime();
+        // 计算时间差（单位：秒），用于积分计算
         float deltaTime = (currentTime - lastTimestamp) / 1e9f;
         lastTimestamp = currentTime;
 
         switch (event.sensor.getType()) {
             case Sensor.TYPE_ACCELEROMETER:
-                // 低通滤波
+                // 低通滤波处理（权重 0.1），用于消除高频噪声
                 acceleration[0] = event.values[0] * 0.1f + acceleration[0] * 0.9f;
                 acceleration[1] = event.values[1] * 0.1f + acceleration[1] * 0.9f;
                 acceleration[2] = event.values[2] * 0.1f + acceleration[2] * 0.9f;
                 break;
 
             case Sensor.TYPE_GYROSCOPE:
+                // 积分陀螺仪数据计算旋转角度（弧度）
+                // deltaTime 时间间隔内角速度的积分
                 rotation[0] += event.values[0] * deltaTime;
                 rotation[1] += event.values[1] * deltaTime;
                 rotation[2] += event.values[2] * deltaTime;
@@ -275,18 +279,21 @@ public class SensorMeasureActivity extends AppCompatActivity implements SensorEv
         }
 
         if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
+            // 去除重力分量计算线性加速度
             float[] linearAccel = new float[]{
                     acceleration[0] - (float) Math.sin(rotation[1]) * SensorManager.GRAVITY_EARTH,
                     acceleration[1] - (float) Math.sin(rotation[0]) * SensorManager.GRAVITY_EARTH,
                     acceleration[2] - SensorManager.GRAVITY_EARTH
             };
 
+            // 通过加速度二次积分计算位移（s = 0.5 * a * t²）
             double deltaDistance = 0.5 * Math.sqrt(
                     linearAccel[0] * linearAccel[0] +
                             linearAccel[1] * linearAccel[1] +
                             linearAccel[2] * linearAccel[2]
             ) * deltaTime * deltaTime;
 
+            // 累加总位移
             totalDistance += deltaDistance;
         }
     }
