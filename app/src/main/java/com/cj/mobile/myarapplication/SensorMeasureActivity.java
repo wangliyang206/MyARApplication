@@ -29,20 +29,43 @@ import java.util.Locale;
 public class SensorMeasureActivity extends AppCompatActivity implements SensorEventListener {
     private static final int CAMERA_PERMISSION_CODE = 100;
 
-    // 添加成员变量
-    private CrosshairView crosshairView;
-
-    private Camera camera;
+    /*—————————————————————————————————————————————控件—————————————————————————————————————————————*/
+    // 相机预览
     private SurfaceView cameraPreview;
+    // 十字准星 和 测量线
+    private CrosshairView crosshairView;
+    // 显示距离
     private TextView distanceText;
+    // 测量按钮
     private Button measureButton;
 
+    /*———————————————————————————————————————————业务变量———————————————————————————————————————————*/
+    // 照相机 对象
+    private Camera camera;
+    // 传感器管理器 对象
     private SensorManager sensorManager;
+    // 存储经过低通滤波处理后的三轴加速度值（单位：m/s²）。
+    // 对应手机X/Y/Z轴的加速度数据，用于计算实际运动加速度（去除重力分量）
     private float[] acceleration = new float[3];
+    // 记录通过陀螺仪积分计算的三轴旋转角度（单位：弧度）。
+    // 用于消除重力分量时计算手机姿态，对应绕X/Y/Z轴的旋转量。
     private float[] rotation = new float[3];
+    // 记录上一次传感器事件的时间戳（纳秒级）。
+    // 用于计算两次传感器数据采集的时间间隔（deltaTime），是加速度积分计算位移的关键时间参数。
     private long lastTimestamp;
+    // 累计存储通过加速度二次积分计算出的总位移量（单位：米）。
+    // 最终会显示在UI上作为测量结果。
     private double totalDistance;
+    // 是否正在测量
     private boolean isMeasuring;
+
+    // 优化后的参数配置
+    private static final float ACCELERATION_THRESHOLD = 0.15f;      // 加速度阈值(m/s²)
+    private static final float STATIONARY_DURATION = 1.0f;          // 静止判定时间(s)
+    // 新增成员变量
+    private float[] lastLinearAccel = new float[3];
+    private long stationaryStartTime;
+    private boolean isStationary;
 
     private final SurfaceHolder.Callback surfaceCallback = new SurfaceHolder.Callback() {
         @Override
@@ -272,38 +295,73 @@ public class SensorMeasureActivity extends AppCompatActivity implements SensorEv
 
         switch (event.sensor.getType()) {
             case Sensor.TYPE_ACCELEROMETER:
-                // 低通滤波处理（权重 0.1），用于消除高频噪声
-                acceleration[0] = event.values[0] * 0.1f + acceleration[0] * 0.9f;
-                acceleration[1] = event.values[1] * 0.1f + acceleration[1] * 0.9f;
-                acceleration[2] = event.values[2] * 0.1f + acceleration[2] * 0.9f;
+                // 使用改进的低通滤波（权重调整）
+                final float alpha = 0.8f;
+                acceleration[0] = alpha * acceleration[0] + (1 - alpha) * event.values[0];
+                acceleration[1] = alpha * acceleration[1] + (1 - alpha) * event.values[1];
+                acceleration[2] = alpha * acceleration[2] + (1 - alpha) * event.values[2];
                 break;
 
             case Sensor.TYPE_GYROSCOPE:
-                // 积分陀螺仪数据计算旋转角度（弧度）
-                // deltaTime 时间间隔内角速度的积分
-                rotation[0] += event.values[0] * deltaTime;
-                rotation[1] += event.values[1] * deltaTime;
-                rotation[2] += event.values[2] * deltaTime;
+                // 优化角度积分（增加漂移补偿）
+                rotation[0] += (event.values[0] - 0.01f) * deltaTime; // 减去微小漂移
+                rotation[1] += (event.values[1] - 0.01f) * deltaTime;
+                rotation[2] += (event.values[2] - 0.01f) * deltaTime;
                 break;
         }
 
         if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
-            // 去除重力分量计算线性加速度
-            float[] linearAccel = new float[]{
-                    acceleration[0] - (float) Math.sin(rotation[1]) * SensorManager.GRAVITY_EARTH,
-                    acceleration[1] - (float) Math.sin(rotation[0]) * SensorManager.GRAVITY_EARTH,
-                    acceleration[2] - SensorManager.GRAVITY_EARTH
+            // 改进的重力分量计算
+            float[] gravity = {
+                    (float) (Math.sin(rotation[1]) * SensorManager.GRAVITY_EARTH),
+                    (float) (-Math.sin(rotation[0]) * SensorManager.GRAVITY_EARTH),
+                    (float) (Math.cos(rotation[0]) * Math.cos(rotation[1]) * SensorManager.GRAVITY_EARTH)
             };
 
-            // 通过加速度二次积分计算位移（s = 0.5 * a * t²）
-            double deltaDistance = 0.5 * Math.sqrt(
+            // 计算线性加速度（当前加速度 - 重力）
+            float[] linearAccel = {
+                    acceleration[0] - gravity[0],
+                    acceleration[1] - gravity[1],
+                    acceleration[2] - gravity[2]
+            };
+
+            // 运动状态检测
+            float accelMagnitude = (float) Math.sqrt(
                     linearAccel[0] * linearAccel[0] +
                             linearAccel[1] * linearAccel[1] +
                             linearAccel[2] * linearAccel[2]
-            ) * deltaTime * deltaTime;
+            );
 
-            // 累加总位移
-            totalDistance += deltaDistance;
+            // 动态阈值检测（结合历史数据）
+            float deltaAccel = Math.abs(accelMagnitude -
+                    (float) Math.sqrt(
+                            lastLinearAccel[0]*lastLinearAccel[0] +
+                                    lastLinearAccel[1]*lastLinearAccel[1] +
+                                    lastLinearAccel[2]*lastLinearAccel[2]
+                    )
+            );
+
+            // 状态机判断
+            if (accelMagnitude < ACCELERATION_THRESHOLD && deltaAccel < 0.1f) {
+                if (!isStationary) {
+                    stationaryStartTime = System.currentTimeMillis();
+                    isStationary = true;
+                } else if ((System.currentTimeMillis() - stationaryStartTime) / 1000f > STATIONARY_DURATION) {
+                    return; // 持续静止超过阈值时跳过计算
+                }
+            } else {
+                isStationary = false;
+                System.arraycopy(linearAccel, 0, lastLinearAccel, 0, 3);
+            }
+
+            // 有效运动时积分计算
+            if (!isStationary) {
+                double deltaDistance = 0.5 * accelMagnitude * deltaTime * deltaTime;
+                totalDistance += deltaDistance;
+
+                // 速度衰减补偿（防止积分漂移）
+                totalDistance *= 0.995;
+            }
         }
     }
 

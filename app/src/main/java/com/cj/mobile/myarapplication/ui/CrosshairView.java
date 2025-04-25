@@ -4,9 +4,7 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.graphics.PointF;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.View;
 
 /**
@@ -19,7 +17,6 @@ import android.view.View;
  */
 public class CrosshairView extends View {
     private Paint crosshairPaint;
-
 
     public CrosshairView(Context context, AttributeSet attrs) {
         super(context, attrs);
