@@ -5,6 +5,7 @@
       <map>
         <entry key="..\:/git/MyARApplication/app/src/main/res/drawable/ic_marker_end.xml" value="0.2735" />
         <entry key="..\:/git/MyARApplication/app/src/main/res/drawable/ic_marker_start.xml" value="0.2735" />
+        <entry key="..\:/git/MyARApplication/app/src/main/res/layout/activity_distance_measurement.xml" value="0.3138586956521739" />
         <entry key="..\:/git/MyARApplication/app/src/main/res/layout/activity_face.xml" value="0.3138586956521739" />
         <entry key="..\:/git/MyARApplication/app/src/main/res/layout/activity_face_detection.xml" value="0.27898550724637683" />
         <entry key="..\:/git/MyARApplication/app/src/main/res/layout/activity_main.xml" value="0.27898550724637683" />

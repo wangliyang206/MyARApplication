@@ -7,7 +7,7 @@
         android:id="@+id/cameraPreview"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_alignParentTop="true"/>
+        android:layout_alignParentTop="true" />
 
     <!-- 新增：用于绘制准星和测量线的自定义视图 -->
     <com.cj.mobile.myarapplication.ui.CrosshairView
@@ -18,24 +18,24 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="16dp"
+        android:layout_alignParentBottom="true"
         android:background="#80000000"
-        android:layout_alignParentBottom="true">
+        android:orientation="vertical"
+        android:padding="16dp">
 
         <TextView
             android:id="@+id/distanceText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textSize="24sp"
+            android:text="点击开始测量"
             android:textColor="#FFFFFF"
-            android:text="点击开始测量"/>
+            android:textSize="24sp" />
 
         <Button
             android:id="@+id/measureButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="开始测量"
-            android:layout_marginTop="16dp"/>
+            android:layout_marginTop="16dp"
+            android:text="开始测量" />
     </LinearLayout>
 </RelativeLayout>
