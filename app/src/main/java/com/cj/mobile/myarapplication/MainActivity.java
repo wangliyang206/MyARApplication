@@ -48,7 +48,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
         findViewById(R.id.btn_two_measure).setOnClickListener(view -> {
-            toJump(ARMeasureActivity.class);
+            toJump(TwoMeasureActivity.class);
         });
 
         findViewById(R.id.btn_ar_measure).setOnClickListener(view -> {

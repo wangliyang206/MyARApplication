@@ -37,7 +37,7 @@ import java.util.concurrent.ExecutionException;
  * @Author: WLY
  * @CreateDate: 2025/4/23 11:24
  */
-public class ARMeasureActivity extends AppCompatActivity implements SensorEventListener {
+public class TwoMeasureActivity extends AppCompatActivity implements SensorEventListener {
     private static final int REQUEST_CODE_PERMISSIONS = 101;
     private static final String[] REQUIRED_PERMISSIONS = {Manifest.permission.CAMERA};
     private static final int ASPECT_RATIO = AspectRatio.RATIO_4_3; // int类型（值=1）

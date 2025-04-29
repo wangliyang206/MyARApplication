@@ -49,7 +49,7 @@
         </activity>
 
         <activity android:name=".FaceActivity" />
-        <activity android:name=".ARMeasureActivity" />
+        <activity android:name=".TwoMeasureActivity" />
         <activity android:name=".SensorMeasureActivity" />
     </application>
 
