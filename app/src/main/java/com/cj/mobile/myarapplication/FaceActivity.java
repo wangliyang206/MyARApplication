@@ -49,7 +49,7 @@ import java.util.List;
  * @ProjectName: MyARApplication
  * @Package: com.cj.mobile.myarapplication
  * @ClassName: FaceActivity
- * @Description:
+ * @Description: AR Camera，识别到人脸后，绘制人脸关键点，并绘制装饰
  * @Author: WLY
  * @CreateDate: 2025/4/2 15:53
  */

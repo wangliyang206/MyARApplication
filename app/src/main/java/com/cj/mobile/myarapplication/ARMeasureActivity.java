@@ -33,7 +33,7 @@ import java.util.concurrent.ExecutionException;
  * @ProjectName: MyARApplication
  * @Package: com.cj.mobile.myarapplication
  * @ClassName: ARMeasureActivity
- * @Description: AR 测量
+ * @Description: 两点测量，手动选择起点和终点，并计算距离
  * @Author: WLY
  * @CreateDate: 2025/4/23 11:24
  */
