@@ -6,7 +6,11 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.hardware.camera2.CameraAccessException;
+import android.hardware.camera2.CameraCharacteristics;
+import android.hardware.camera2.CameraManager;
 import android.os.Bundle;
+import android.util.SizeF;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
@@ -16,6 +20,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.camera.camera2.interop.Camera2CameraInfo;
+import androidx.camera.camera2.interop.ExperimentalCamera2Interop;
 import androidx.camera.core.AspectRatio;
 import androidx.camera.core.Camera;
 import androidx.camera.core.CameraSelector;
@@ -29,6 +35,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 
 import java.util.concurrent.ExecutionException;
 
+@ExperimentalCamera2Interop
 /**
  * @ProjectName: MyARApplication
  * @Package: com.cj.mobile.myarapplication
@@ -42,8 +49,8 @@ public class TwoMeasureActivity extends AppCompatActivity implements SensorEvent
     private static final String[] REQUIRED_PERMISSIONS = {Manifest.permission.CAMERA};
     private static final int ASPECT_RATIO = AspectRatio.RATIO_4_3; // int类型（值=1）
     private float FOCAL_LENGTH = 3.97f; // 典型4800万像素主摄焦距
-    private static final float SENSOR_WIDTH = 6.17f; // 1/2.0英寸传感器宽度（mm）
-    private static final float SENSOR_HEIGHT = 4.54f; // 对应4:3比例
+    private static float SENSOR_WIDTH = 6.17f; // 1/2.0英寸传感器宽度（mm）
+    private static float SENSOR_HEIGHT = 4.54f; // 对应4:3比例
 
     private PreviewView previewView;
     private TextView distanceText, statusText;
@@ -110,6 +117,9 @@ public class TwoMeasureActivity extends AppCompatActivity implements SensorEvent
         }, ContextCompat.getMainExecutor(this));
     }
 
+    /**
+     * 绑定预览视图
+     */
     private void bindPreview(ProcessCameraProvider cameraProvider) {
         Preview preview = new Preview.Builder()
                 .setTargetAspectRatio(ASPECT_RATIO) // 1.2.3有效方法
@@ -121,7 +131,34 @@ public class TwoMeasureActivity extends AppCompatActivity implements SensorEvent
                 .build();
 
         preview.setSurfaceProvider(previewView.getSurfaceProvider());
-        Camera camera = cameraProvider.bindToLifecycle(this, cameraSelector, preview);
+
+        try {
+            // 获取相机参数
+            Camera camera = cameraProvider.bindToLifecycle(this, cameraSelector, preview);
+
+            // 通过 Camera2 API 获取焦距
+            String cameraId = Camera2CameraInfo.from(camera.getCameraInfo()).getCameraId();
+            CameraManager cameraManager = (CameraManager) getSystemService(CAMERA_SERVICE);
+            CameraCharacteristics characteristics = cameraManager.getCameraCharacteristics(cameraId);
+
+            SizeF sensorSize = characteristics.get(CameraCharacteristics.SENSOR_INFO_PHYSICAL_SIZE);
+            if (sensorSize != null) {
+                SENSOR_WIDTH = sensorSize.getWidth();  // 实际传感器宽度(mm)
+                SENSOR_HEIGHT = sensorSize.getHeight(); // 实际传感器高度(mm)
+            }
+
+            // 获取可用焦距列表（单位：毫米）
+            float[] focalLengths = characteristics.get(
+                    CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS
+            );
+
+            if (focalLengths != null && focalLengths.length > 0) {
+                FOCAL_LENGTH = focalLengths[0]; // 使用第一个可用焦距
+            }
+        } catch (CameraAccessException e) {
+//            e.printStackTrace();
+            FOCAL_LENGTH = 3.97f; // 使用默认值
+        }
 
         previewView.setOnTouchListener((v, event) -> {
             if (isMeasuring && event.getAction() == MotionEvent.ACTION_DOWN) {
@@ -133,28 +170,66 @@ public class TwoMeasureActivity extends AppCompatActivity implements SensorEvent
     }
 
     private void handleTap(float rawX, float rawY) {
+        // 添加预览视图有效性检查
+        if (previewView.getWidth() <= 0 || previewView.getHeight() <= 0) {
+            statusText.setText("相机初始化中...");
+            return;
+        }
+
         if (!isDeviceLevel()) {
             statusText.setText("请保持手机水平！");
             return;
         }
 
-        // 修复比例计算（基于实际预览尺寸）
-        int previewWidth = previewView.getWidth();
-        int previewHeight = previewView.getHeight();
+        // 获取带保护的预览尺寸
+        int previewWidth = Math.max(1, previewView.getWidth());
+        int previewHeight = Math.max(1, previewView.getHeight());
 
-        // 计算实际预览区域（考虑4:3缩放）
-        float scale = Math.min(
-                (float) previewWidth / ASPECT_RATIO,
-                (float) previewHeight / 1
+        // 计算显示区域（增加除零保护）
+        float aspectRatioValue = ASPECT_RATIO == AspectRatio.RATIO_4_3 ? 4 / 3f : 1f;
+        float scaleFactor = Math.min(
+                previewWidth / Math.max(1f, aspectRatioValue),
+                previewHeight / 1f
         );
-        float displayWidth = scale * ASPECT_RATIO;
-        float displayHeight = scale * 1;
-        float left = (previewWidth - displayWidth) / 2;
-        float top = (previewHeight - displayHeight) / 2;
 
-        // 转换为传感器坐标系
-        float sensorX = (rawX - left) / displayWidth * SENSOR_WIDTH;
-        float sensorY = (rawY - top) / displayHeight * SENSOR_HEIGHT;
+        float displayWidth = scaleFactor * aspectRatioValue;
+        float displayHeight = scaleFactor * 1f;
+
+        // 边界计算（增加容错）
+        float leftMargin = Math.max(0, (previewWidth - displayWidth) / 2);
+        float topMargin = Math.max(0, (previewHeight - displayHeight) / 2);
+        float rightBound = Math.min(previewWidth, leftMargin + displayWidth);
+        float bottomBound = Math.min(previewHeight, topMargin + displayHeight);
+
+        // 坐标约束
+        float clampedX = Math.max(leftMargin, Math.min(rawX, rightBound));
+        float clampedY = Math.max(topMargin, Math.min(rawY, bottomBound));
+
+        // 传感器坐标转换（增加有效性验证）
+        float validDisplayWidth = Math.max(1, displayWidth);
+        float validDisplayHeight = Math.max(1, displayHeight);
+
+        float sensorX = (clampedX - leftMargin) / validDisplayWidth * SENSOR_WIDTH;
+        float sensorY = (clampedY - topMargin) / validDisplayHeight * SENSOR_HEIGHT;
+
+        // NaN值防御
+        if (Float.isNaN(sensorX) || Float.isNaN(sensorY)) {
+            showMessage("坐标转换错误", "请重新测量");
+            resetMeasurement();
+            return;
+        }
+
+        // 防抖处理：避免点击相同位置
+        if (startPoint != null) {
+//            float minDistance = 5f; // 调整为5毫米
+            float minDistance = SENSOR_WIDTH * 0.03f; // 传感器宽度的3%
+            float distance = (float) Math.hypot(sensorX - startPoint.x, sensorY - startPoint.y);
+
+            if (distance < minDistance) {
+                statusText.setText("两点间距需大于" + minDistance + "mm");
+                return;
+            }
+        }
 
         if (startPoint == null) {
             startPoint = new Point(sensorX, sensorY);
@@ -171,6 +246,13 @@ public class TwoMeasureActivity extends AppCompatActivity implements SensorEvent
             endMarker.animate().alpha(1f).setDuration(300).start();
             calculateDistance();
         }
+    }
+
+    private void resetMeasurement() {
+        startPoint = null;
+        endPoint = null;
+        clearMarkers();
+        statusText.setText("点击重新开始测量");
     }
 
     /**
@@ -225,25 +307,31 @@ public class TwoMeasureActivity extends AppCompatActivity implements SensorEvent
     private void calculateDistance() {
         if (startPoint == null || endPoint == null) return;
 
-        // 实际物理尺寸转换（像素->毫米）
-        float dx_mm = (endPoint.x - startPoint.x) * (SENSOR_WIDTH / previewView.getWidth());
-        float dy_mm = (endPoint.y - startPoint.y) * (SENSOR_HEIGHT / previewView.getHeight());
+        // 计算像素位移（毫米）
+        float dx_mm = endPoint.x - startPoint.x;
+        float dy_mm = endPoint.y - startPoint.y;
 
-        // 三维空间距离公式（单位：毫米）
-        float distanceMM = (float) Math.sqrt(
-                Math.pow(dx_mm, 2) +
-                        Math.pow(dy_mm, 2) +
-                        Math.pow(FOCAL_LENGTH, 2)
-        );
+        // 添加安全校验
+        if (FOCAL_LENGTH <= 0 || dx_mm == 0 && dy_mm == 0) {
+            showMessage("设备参数异常", "测量失败");
+            return;
+        }
 
-        // 增加有效性检查
-        if (Float.isNaN(distanceMM) || Float.isInfinite(distanceMM)) {
-            showMessage("测量失败，请重试", "错误");
+        // 使用透视投影公式（单位：毫米）
+        // 真实距离 = 像素距离 * (物距 / 焦距)
+        // 动态计算物距（假设用户保持30cm距离）
+        final float OBJECT_DISTANCE = 300f; // 毫米
+        float pixelDistance = (float) Math.sqrt(dx_mm * dx_mm + dy_mm * dy_mm);
+        float realDistanceMM = pixelDistance * (OBJECT_DISTANCE / FOCAL_LENGTH);
+
+        // 精度校验
+        if (Float.isNaN(realDistanceMM) || realDistanceMM < 1) {
+            showMessage("请重新选择测量点", "无效操作");
             return;
         }
 
         // 转换为厘米
-        float distanceCM = distanceMM * 0.1f;
+        float distanceCM = realDistanceMM * 0.1f;
 
         runOnUiThread(() -> {
             showMessage(String.format("距离: %.2fcm", distanceCM), "测量完成！");
@@ -269,9 +357,13 @@ public class TwoMeasureActivity extends AppCompatActivity implements SensorEvent
         statusText.setText("点击选择起点");
     }
 
+    /**
+     * 设备水平判断
+     */
     private boolean isDeviceLevel() {
-//        return Math.abs(orientation[1]) < 10; // 俯仰角小于10度（水平判断）
-        return Math.abs(orientation[1]) < 5; // 严格水平判断（±5度）
+        return Math.abs(orientation[1]) < 10; // 俯仰角小于10度（水平判断）
+//        return Math.abs(orientation[1]) < 5; // 严格水平判断（±5度）
+//        return true;          // 允许任意角度（用于测试）
     }
 
     // 传感器回调
