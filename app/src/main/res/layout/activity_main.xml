@@ -12,13 +12,20 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_margin="16dp"
-        android:text="AR Camera" />
+        android:text="AR摄像头" />
+
+    <Button
+        android:id="@+id/btn_two_measure"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:text="两点测量" />
 
     <Button
         android:id="@+id/btn_ar_measure"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_margin="16dp"
-        android:text="AR Measure" />
+        android:text="AR测量" />
 
 </LinearLayout>
